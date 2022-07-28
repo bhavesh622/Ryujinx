@@ -207,10 +207,5 @@ namespace Ryujinx.Memory
                 throw new ArgumentException("Invalid address.", nameof(address));
             }
         }
-
-        public static bool RetryFromAccessViolation()
-        {
-            return _placeholders.RetryFromAccessViolation();
-        }
     }
 }
