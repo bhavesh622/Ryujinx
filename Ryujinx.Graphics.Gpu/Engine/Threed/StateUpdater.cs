@@ -1,7 +1,5 @@
 ﻿using Ryujinx.Common.Logging;
-using Ryujinx.Common.Memory;
 using Ryujinx.Graphics.GAL;
-using Ryujinx.Graphics.Gpu.Engine.GPFifo;
 using Ryujinx.Graphics.Gpu.Engine.Types;
 using Ryujinx.Graphics.Gpu.Image;
 using Ryujinx.Graphics.Gpu.Shader;
@@ -991,6 +989,8 @@ namespace Ryujinx.Graphics.Gpu.Engine.Threed
 
             bool drawIndexed = _drawState.DrawIndexed;
             bool drawIndirect = _drawState.DrawIndirect;
+            int drawFirstVertex = _drawState.DrawFirstVertex;
+            int drawVertexCount = _drawState.DrawVertexCount;
             uint vbEnableMask = 0;
 
             for (int index = 0; index < Constants.TotalVertexBuffers; index++)
@@ -1052,9 +1052,7 @@ namespace Ryujinx.Graphics.Gpu.Engine.Threed
 
                     int firstInstance = (int)_state.State.FirstInstance;
 
-                    var drawState = _state.State.VertexBufferDrawState;
-
-                    size = Math.Min(vbSize, (ulong)((firstInstance + drawState.First + drawState.Count) * stride));
+                    size = Math.Min(vbSize, (ulong)((firstInstance + drawFirstVertex + drawVertexCount) * stride));
                 }
 
                 _pipeline.VertexBuffers[index] = new BufferPipelineDescriptor(_channel.MemoryManager.IsMapped(address), stride, divisor);
@@ -1295,7 +1293,14 @@ namespace Ryujinx.Graphics.Gpu.Engine.Threed
 
             for (int stageIndex = 0; stageIndex < Constants.ShaderStages; stageIndex++)
             {
-                _currentProgramInfo[stageIndex] = gs.Shaders[stageIndex + 1]?.Info;
+                ShaderProgramInfo info = gs.Shaders[stageIndex + 1]?.Info;
+
+                if (info?.UsesRtLayer == true)
+                {
+                    _vtgWritesRtLayer = true;
+                }
+
+                _currentProgramInfo[stageIndex] = info;
             }
 
             _context.Renderer.Pipeline.SetProgram(gs.HostProgram);
